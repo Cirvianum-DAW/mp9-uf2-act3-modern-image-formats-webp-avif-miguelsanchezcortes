@@ -25,6 +25,7 @@ async function getImageInfo(url) {
         const alt = img.alt;
         const size = blob.size;
 
+        // Devolvemos el tamaño de la imagen y los demás datos
         resolve({ format, dimensions, alt, size });
       } catch (error) {
         reject(error);
@@ -35,31 +36,46 @@ async function getImageInfo(url) {
   });
 }
 
-function displayImageInfo(url, container) {
-  getImageInfo(url)
-    .then((info) => {
-      const formatElement = document.createElement("p");
-      formatElement.textContent = `Format: ${info.format}`;
-      container.appendChild(formatElement);
-
-      const dimensionsElement = document.createElement("p");
-      dimensionsElement.textContent = `Dimensions: ${info.dimensions.width}x${info.dimensions.height}`;
-      container.appendChild(dimensionsElement);
-
-      const altElement = document.createElement("p");
-      altElement.textContent = `Alt: ${info.alt}`;
-      container.appendChild(altElement);
-
-      const sizeInKB = (info.size / 1024).toFixed(2);
-      const sizeElement = document.createElement("p");
-      sizeElement.textContent = `Size: ${sizeInKB} KB`;
-      container.appendChild(sizeElement);
-    })
-    .catch(console.error);
-}
-
 const container = document.querySelector("#image-info-container");
 
-images.forEach((img, i) => {
-  displayImageInfo(img.src, infoContainers[i]);
-});
+// Función para calcular el porcentaje de reducción
+function calculateReductionPercentage(originalSize, newSize) {
+  const originalSizeInKB = (originalSize / 1024).toFixed(2);
+  const newSizeInKB = (newSize / 1024).toFixed(2);
+  const reductionPercentage = ((1 - (newSize / originalSize)) * 100).toFixed(2);
+  return `${reductionPercentage}% (${originalSizeInKB} KB -> ${newSizeInKB} KB)`;
+}
+
+// Obtenemos el tamaño de la imagen original
+const originalImageUrl = document.querySelector("img.original").src;
+getImageInfo(originalImageUrl)
+  .then((originalImageInfo) => {
+    const originalSize = originalImageInfo.size;
+
+    // Mostramos la información de cada imagen
+    images.forEach(async (img, i) => {
+      const newImageInfo = await getImageInfo(img.src);
+      const reductionInfo = calculateReductionPercentage(originalSize, newImageInfo.size);
+
+      const formatElement = document.createElement("p");
+      formatElement.textContent = `Format: ${newImageInfo.format}`;
+      infoContainers[i].appendChild(formatElement);
+
+      const dimensionsElement = document.createElement("p");
+      dimensionsElement.textContent = `Dimensions: ${newImageInfo.dimensions.width}x${newImageInfo.dimensions.height}`;
+      infoContainers[i].appendChild(dimensionsElement);
+
+      const altElement = document.createElement("p");
+      altElement.textContent = `Alt: ${newImageInfo.alt}`;
+      infoContainers[i].appendChild(altElement);
+
+      const sizeElement = document.createElement("p");
+      sizeElement.textContent = `Size: ${(newImageInfo.size / 1024).toFixed(2)} KB`;
+      infoContainers[i].appendChild(sizeElement);
+
+      const reductionElement = document.createElement("p");
+      reductionElement.textContent = `Reduction: ${reductionInfo}`;
+      infoContainers[i].appendChild(reductionElement);
+    });
+  })
+  .catch(console.error);
